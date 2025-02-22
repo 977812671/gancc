@@ -1,0 +1,41 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      # 步骤 1: 检出代码
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 步骤 2: 设置缓存
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        id: cache-deps  # 缓存操作的唯一标识符
+        with:
+          # 要缓存的目录（多个路径用换行分隔）
+          path: |
+            node_modules
+            .npm
+            ~/.cache/yarn
+          # 缓存的唯一键（动态生成）
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock') }}
+          # 缓存回退键（匹配失败时尝试旧缓存）
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      # 步骤 3: 仅在缓存未命中时安装依赖
+      - name: Install Dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      # 步骤 4: 构建项目（假设缓存已恢复）
+      - name: Build
+        run: yarn build
